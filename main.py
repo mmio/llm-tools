@@ -22,7 +22,7 @@ warnings.filterwarnings('ignore')
 
 dotenv.load_dotenv('.env')
 
-class OpenAIAgent:
+class PythonCodeGenerator:
     def __init__(self):
         self.system_instructions = """
         TITLE
@@ -77,8 +77,8 @@ class OpenAIAgent:
         
         """
 
-        if OpenAIAgent.file_exists('history.json'):
-            self.messages = OpenAIAgent.load_messages_from_file('history.json')
+        if PythonCodeGenerator.file_exists('history.json'):
+            self.messages = PythonCodeGenerator.load_messages_from_file('history.json')
             print('Loaded history file from history.json')
         else:
             self.messages = [{
@@ -185,8 +185,8 @@ class OpenAIAgent:
 
                     self.last_response = message.get('content')
 
-        OpenAIAgent.save_messages_to_file(self.messages)
+        PythonCodeGenerator.save_messages_to_file(self.messages)
                     
         return self
 
-oaa = OpenAIAgent()
+pcg = PythonCodeGenerator()
