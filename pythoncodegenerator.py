@@ -79,7 +79,7 @@ class PythonCodeGenerator:
 
         if PythonCodeGenerator.file_exists('history.json'):
             self.messages = PythonCodeGenerator.load_messages_from_file('history.json')
-            print('Loaded history file from history.json')
+            # print('Loaded history file from history.json')
         else:
             self.messages = [{
                 "role": "system", "content": self.system_instructions
@@ -171,7 +171,7 @@ class PythonCodeGenerator:
         if choice := response.get('choices').pop():
             if message := choice.get('message'):
                 if content := message.get('content'):
-                    print(content)
+                    # print(content)
 
                     self.messages.append({
                         "role": "user",
