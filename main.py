@@ -1,3 +1,12 @@
+# Reset history
+# RAG
+# input file to refactor
+# different name not OpenAIAgent, create hierarchi?
+# code validator, code tester, commit reviewer, ?, code navigator, bug_finder, requirement generator analyzer
+# tools: websearch (for documentation), git differ?, edit_file, calculator
+# switch to project/directory
+# start test watch mode
+
 import os 
 import pprint
 
@@ -77,6 +86,7 @@ class OpenAIAgent:
             }]
 
         self.last_response = ''
+        self.file_context = ''
 
     def write_last_response(self, filename: str) -> None:
         with open(filename, 'wt', encoding='utf-8') as output_file:
@@ -127,12 +137,28 @@ class OpenAIAgent:
         except (IOError, json.JSONDecodeError) as e:
             raise RuntimeError(f"Failed to load messages from {filename}: {e}")
 
+    def add_file_context(self, filename: str) -> 'OpenAIAgent':
+        """
+        Read the content of a file and store it as the file context.
+        Args:
+            filename: Path to the file to be added as context.
+        Returns:
+            self: The instance with updated file context.
+        """
+        try:
+            with open(filename, 'rt', encoding='utf-8') as f:
+                self.file_context = f.read()
+        except IOError as e:
+            raise RuntimeError(f"Failed to read file {filename}: {e}")
+        return self
+
     def ask(self, prompt: str) -> str:
+        context = self.file_context
         msgs = [
                 *self.messages,
                 {
                     "role": "user",
-                    "content": prompt,
+                    "content": (context + ' ' + prompt).strip(),
                 }
             ]
 
@@ -164,4 +190,3 @@ class OpenAIAgent:
         return self
 
 oaa = OpenAIAgent()
-# oaa.ask(prompt='write hello world with custom name.')
