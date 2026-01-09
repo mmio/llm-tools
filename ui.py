@@ -8,7 +8,7 @@ import subprocess
 from prompt_toolkit.shortcuts import input_dialog
 
 # ---- Load file ----
-FILE_PATH = "example.py"
+FILE_PATH = "ui.py"
 
 with open(FILE_PATH, "r") as f:
     initial_text = f.read()
@@ -45,7 +45,52 @@ def _(event):
     with open(FILE_PATH, "w") as f:
         buffer = event.app.current_buffer
         f.write(buffer.text)
-    
+
+@kb.add("c-e")
+def _(event):
+    # Prompt for new filename
+    async def prompt_filename():
+        filename = await input_dialog(
+            title="Switch File",
+            text="Enter filename:",
+        ).run_async()
+        return filename
+
+    async def run():
+        filename = await prompt_filename()
+        if filename:
+            try:
+                with open(filename, "r") as f:
+                    new_text = f.read()
+                # Update text_area with new content
+                text_area.text = new_text
+            except Exception as e:
+                # Optionally, handle errors here (e.g., show message)
+                pass
+
+    event.app.create_background_task(run())
+
+@kb.add("c-t")
+def _(event):
+    buffer = event.app.current_buffer
+    # Prompt user for input
+    async def prompt_input():
+        user_input = await input_dialog(
+            title="Prompt",
+            text="Enter value:",
+        ).run_async()
+        return user_input
+
+    async def run():
+        user_input = await prompt_input()
+        if user_input is None:
+            return
+        # Generate code based on entire buffer or other context
+        output = run_python_on_text('', user_input, buffer.text)
+        # Insert generated text at cursor position
+        buffer.insert_text(output)
+
+    event.app.create_background_task(run())    
 # ---- Keybinding: Ctrl-R ----
 @kb.add("c-r")
 def _(event):
