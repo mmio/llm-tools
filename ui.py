@@ -24,13 +24,13 @@ kb = KeyBindings()
 from pythoncodegenerator import PythonCodeGenerator
 
 # ---- Function that processes selected text ----
-def run_python_on_text(text: str, prompt: str = '') -> str:
+def run_python_on_text(text: str, prompt: str = '', whole: str = '') -> str:
     """
     Example: run external Python script that reads stdin
     """
     result = (
         PythonCodeGenerator()
-        .ask(f"here is the code: {text}, and here is the user prompt: {prompt}")
+        .ask(f"Whole file text : {whole}. here is selected code to change: {text}, and here is the user prompt: {prompt}")
         .last_response
     )
 
@@ -69,10 +69,16 @@ def _(event):
             return
 
         # Run script
-        output = run_python_on_text(selected_text, user_input)
+        output = run_python_on_text(selected_text, user_input, buffer.text)
 
         # Replace selection with output
-        buffer.delete_before_cursor(count=buffer.cursor_position - start)
+        if buffer.cursor_position > start:
+            buffer.delete_before_cursor(count=buffer.cursor_position - start)
+        else:
+            pass
+            # how do we delete stuff here???
+            # buffer.delete_after_cursor(count=end - buffer.cursor_position)
+
         buffer.insert_text(output)
 
         # Clear selection
