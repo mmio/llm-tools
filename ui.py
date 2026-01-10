@@ -1,7 +1,10 @@
+import os
+import pathlib
+
 from prompt_toolkit import Application
 from prompt_toolkit.key_binding import KeyBindings
 from prompt_toolkit.layout import Layout
-from prompt_toolkit.shortcuts import input_dialog
+from prompt_toolkit.shortcuts import input_dialog, radiolist_dialog
 from prompt_toolkit.widgets import TextArea
 
 # ---- Load file ----
@@ -27,7 +30,12 @@ def run_python_on_text(text: str, prompt: str = '', whole: str = '') -> str:
     """
     result = (
         PythonCodeGenerator()
-        .ask(f"Whole file text : {whole}. here is selected code to change: {text}, and here is the user prompt: {prompt}")
+        .ask(f"""
+        Whole file text : {whole}.
+        Here is selected code to change: {text}.
+        Here is the user prompt: {prompt}.
+        Only return the selection changed if provided otherwise the whole file changed.
+        """)
         .last_response
     )
 
@@ -44,21 +52,48 @@ def _(event):
         f.write(buffer.text)
 
 @kb.add("c-e")
-def _(event):
+def open_different_file(event):
     # Prompt for new filename
     async def prompt_filename():
-        filename = await input_dialog(
-            title="Switch File",
-            text="Enter filename:",
-        ).run_async()
+        # filename = await input_dialog(
+        #     title="Switch File",
+        #     text="Enter filename:",
+        # ).run_async()
+
+        cwd = os.getcwd()
+        print(pathlib.Path(cwd).name)
+        filename = ".."
+
+        while filename == '..':
+            dir_list = ['..', *os.listdir(cwd)]
+            filename = await radiolist_dialog(
+                title="Select File",
+                text=cwd,
+                values=[
+                    (item, item)
+                    for item in dir_list
+                ],
+            ).run_async()
+
+            # Going one level up
+            if filename == '..':
+                cwd = str(pathlib.Path(cwd).parent)
+            # Entering directory
+            elif pathlib.Path(cwd, filename).is_dir():
+                cwd = str(pathlib.Path(cwd, filename))
+                filename = '..'
+            # Opening File
+            else:
+                filename = str(pathlib.Path(cwd, filename))
+
         return filename
 
     async def run():
         filename = await prompt_filename()
         if filename:
             try:
-                with open(filename, "r") as f:
-                    new_text = f.read()
+                with open(filename, "r") as next_file_to_open:
+                    new_text = next_file_to_open.read()
                 # Update text_area with new content
                 text_area.text = new_text
             except Exception as e:
