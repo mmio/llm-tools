@@ -4,7 +4,8 @@ import pathlib
 from prompt_toolkit import Application
 from prompt_toolkit.key_binding import KeyBindings
 from prompt_toolkit.layout import Layout
-from prompt_toolkit.shortcuts import input_dialog, radiolist_dialog
+from prompt_toolkit.shortcuts import input_dialog
+from components import radiolist_dialog
 from prompt_toolkit.widgets import TextArea
 
 # ---- Load file ----
