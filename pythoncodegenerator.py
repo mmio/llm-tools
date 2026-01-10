@@ -137,7 +137,7 @@ class PythonCodeGenerator:
         except (IOError, json.JSONDecodeError) as e:
             raise RuntimeError(f"Failed to load messages from {filename}: {e}")
 
-    def add_file_context(self, filename: str) -> 'OpenAIAgent':
+    def add_file_context(self, filename: str) -> 'PythonCodeGenerator':
         """
         Read the content of a file and store it as the file context.
         Args:
@@ -152,7 +152,7 @@ class PythonCodeGenerator:
             raise RuntimeError(f"Failed to read file {filename}: {e}")
         return self
 
-    def ask(self, prompt: str) -> str:
+    def ask(self, prompt: str) -> 'PythonCodeGenerator':
         context = self.file_context
         msgs = [
                 *self.messages,
@@ -163,8 +163,9 @@ class PythonCodeGenerator:
             ]
 
         response = litellm.completion(
-            # model = "gpt-5-nano",
+            #model = "gpt-5-nano",
             model = "gpt-4.1-nano",
+            #model='ollama/gemma3',
             messages=msgs,
         )
 
