@@ -190,4 +190,5 @@ class PythonCodeGenerator:
                     
         return self
 
-pcg = PythonCodeGenerator()
+if __name__ == '__main__':
+    pcg = PythonCodeGenerator()
