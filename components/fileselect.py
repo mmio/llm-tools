@@ -32,7 +32,14 @@ def radiolist_dialog(
     def ok_handler() -> None:
         get_app().exit(result=radio_list.current_value)
 
-    radio_list = RadioList(values=values, default=default, select_on_focus=True)
+    radio_list = RadioList(
+        values=values,
+        default=default,
+        select_on_focus=True,
+        open_character='',
+        close_character='',
+
+    )
 
     dialog = Dialog(
         title=title,
@@ -41,8 +48,8 @@ def radiolist_dialog(
             padding=1,
         ),
         buttons=[
-            Button(text=ok_text, handler=ok_handler),
-            Button(text=cancel_text, handler=_return_none),
+            Button(text=ok_text, handler=ok_handler, left_symbol='[', right_symbol=']'),
+            Button(text=cancel_text, handler=_return_none, left_symbol='[', right_symbol=']'),
         ],
         with_background=True,
     )
