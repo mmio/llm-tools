@@ -97,6 +97,8 @@ def open_different_file(event):
                     new_text = next_file_to_open.read()
                 # Update text_area with new content
                 text_area.text = new_text
+                global FILE_PATH
+                FILE_PATH = filename
             except Exception as e:
                 # Optionally, handle errors here (e.g., show message)
                 pass
