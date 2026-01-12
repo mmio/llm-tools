@@ -52,7 +52,7 @@ def _(event):
         buffer = event.app.current_buffer
         f.write(buffer.text)
 
-@kb.add("c-e")
+@kb.add("c-i")
 def open_different_file(event):
     # Prompt for new filename
     async def prompt_filename():
