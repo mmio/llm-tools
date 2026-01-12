@@ -164,27 +164,50 @@ class PythonCodeGenerator:
 
         response = litellm.completion(
             #model = "gpt-5-nano",
-            model = "gpt-4.1-nano",
+            model = "gpt-4.1",
             #model='ollama/gemma3',
             messages=msgs,
         )
 
-        if choice := response.get('choices').pop():
-            if message := choice.get('message'):
-                if content := message.get('content'):
-                    # print(content)
+        choices = response.get('choices')
+        if not choices:
+            raise Exception(f'LLM response missing "choices" key or it is empty. Response received: {response}')
 
-                    self.messages.append({
-                        "role": "user",
-                        "content": prompt,
-                    })
-                    
-                    self.messages.append({
-                        "role": message.get('role'),
-                        "content": message.get('content'),
-                    })
+        choice = choices.pop()
+        message = choice.get('message')
+        if not message:
+            raise Exception(f'LLM response "choice" missing "message" key. Choice received: {choice}')
 
-                    self.last_response = message.get('content')
+        content = message.get('content')
+        if not content:
+            raise Exception(f'LLM response "message" missing "content" key. Message received: {message}')
+
+        self.messages.append({
+            "role": "user",
+            "content": prompt,
+        })
+
+        self.messages.append({
+            "role": message.get('role'),
+            "content": content,
+        })
+
+        self.last_response = content
+
+        # if choice := response.get('choices').pop():
+        #     if message := choice.get('message'):
+        #         if content := message.get('content'):
+        #             self.messages.append({
+        #                 "role": "user",
+        #                 "content": prompt,
+        #             })
+        #
+        #             self.messages.append({
+        #                 "role": message.get('role'),
+        #                 "content": content,
+        #             })
+        #
+        #             self.last_response = content
 
         PythonCodeGenerator.save_messages_to_file(self.messages)
                     
