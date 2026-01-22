@@ -3,6 +3,7 @@ import pathlib
 
 from prompt_toolkit import Application
 from prompt_toolkit.key_binding import KeyBindings
+from prompt_toolkit.keys import Keys
 from prompt_toolkit.layout import Layout
 from prompt_toolkit.shortcuts import input_dialog
 from components.fileselect import radiolist_dialog
@@ -42,17 +43,71 @@ def run_python_on_text(text: str, prompt: str = '', whole: str = '') -> str:
 
     return result
 
-@kb.add("c-q")
+def is_empty(line: str) -> bool:
+    return line.strip() == ""
+
+@kb.add('escape', '{')   # Alt+{
+def previous_empty_line(event):
+    buffer = event.current_buffer
+    text = buffer.text
+    pos = buffer.cursor_position
+
+    lines = text.splitlines(keepends=True)
+
+    # Find current line index
+    index = 0
+    char_count = 0
+    for i, line in enumerate(lines):
+        char_count += len(line)
+        if char_count >= pos:
+            index = i
+            break
+
+    # Search backwards
+    for i in range(index - 1, -1, -1):
+        if is_empty(lines[i]):
+            buffer.cursor_position = sum(len(l) for l in lines[:i + 1])
+            return
+
+
+@kb.add('escape', '}')   # Alt+}
+def next_empty_line(event):
+    buffer = event.current_buffer
+    text = buffer.text
+    pos = buffer.cursor_position
+
+    lines = text.splitlines(keepends=True)
+
+    # Find current line index
+    index = 0
+    char_count = 0
+    for i, line in enumerate(lines):
+        char_count += len(line)
+        if char_count >= pos:
+            index = i
+            break
+
+    # Search forwards
+    for i in range(index + 1, len(lines)):
+        if is_empty(lines[i]):
+            buffer.cursor_position = sum(len(l) for l in lines[:i + 1])
+            return
+
+@kb.add(Keys.Escape, '<')
+def _(event):
+    event.current_buffer.cursor_position = 0
+
+@kb.add(Keys.ControlX, Keys.ControlC)
 def _(event):
     event.app.exit()
 
-@kb.add("c-s")
+@kb.add(Keys.ControlX, Keys.ControlS)
 def _(event):
     with open(FILE_PATH, "w") as f:
         buffer = event.app.current_buffer
         f.write(buffer.text)
 
-@kb.add("c-i")
+@kb.add(Keys.ControlX, Keys.ControlF)
 def open_different_file(event):
     # Prompt for new filename
     async def prompt_filename():
