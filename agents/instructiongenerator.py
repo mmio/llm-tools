@@ -108,9 +108,12 @@ class InstructionGenerator:
 
         response = litellm.completion(
             #model = "gpt-5-nano",
-            model = "gpt-4.1-nano",
-            #model='ollama/gemma3',
+            # model = "gpt-4.1-nano",
+            model='ollama/qwen2.5-coder',
             messages=msgs,
+            response_format={
+                'type': 'json_object',
+            }
         )
 
         if choice := response.get('choices').pop():

@@ -7,5 +7,6 @@ requires-python = ">=3.13"
 dependencies = [
     "litellm>=1.80.12",
     "prompt-toolkit>=3.0.52",
+    "pygments>=2.19.2",
     "python-dotenv>=1.2.1",
 ]
