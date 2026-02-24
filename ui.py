@@ -9,19 +9,21 @@
 # TODO: Integrate langchain
 # TODO: copy paste
 # TODO: extend selection to function
-# TODO: MVC 
-
-
+# TODO: MVC
+import asyncio
 import os
 import pathlib
+import uuid
 
 from prompt_toolkit import Application
+from prompt_toolkit.application import get_app
+from prompt_toolkit.input import Input
 from prompt_toolkit.key_binding import KeyBindings
 from prompt_toolkit.keys import Keys
 from prompt_toolkit.layout import Layout
 from prompt_toolkit.shortcuts import input_dialog
 from components.fileselect import radiolist_dialog
-from prompt_toolkit.widgets import TextArea
+from prompt_toolkit.widgets import TextArea, SystemToolbar
 from prompt_toolkit.lexers import PygmentsLexer
 from pygments.lexers import PythonLexer
 
@@ -32,26 +34,26 @@ def is_empty(line: str) -> bool:
     return line.strip() == ""
 
 
-def run_python_on_text(text: str, prompt: str = '', whole: str = '') -> str:
+async def run_python_on_text(text: str, prompt: str = '', whole: str = '') -> str:
     """
     Example: run external Python script that reads stdin
     """
-    result = (
-        PythonCodeGenerator()
-        .ask(f"""
-        Whole file text : {whole}.
-        Here is selected code to change: {text}.
-        Here is the user prompt: {prompt}.
-        Only return the selection changed if provided otherwise the whole file changed.
-        """)
-        .last_response
+    result = await asyncio.to_thread(
+        PythonCodeGenerator().ask,
+        f"""
+            Whole file text : {whole}.
+            Here is selected code to change: {text}.
+            Here is the user prompt: {prompt}.
+            Only return the selection changed if provided otherwise the whole file changed.
+            """
     )
 
-    return result
+    return result.last_response
+
 
 FILE_PATH = 'tmp.txt'
 
-if __name__ == '__main__':
+async def main():
     text_area = TextArea(
         text="This is a temporary file buffer",
         multiline=True,
@@ -74,7 +76,7 @@ if __name__ == '__main__':
         __insert_tab()
 
 
-    @kb.add('escape', '{')   # Alt+{
+    @kb.add('escape', '{')  # Alt+{
     def previous_empty_line(event):
         buffer = event.current_buffer
         text = buffer.text
@@ -98,7 +100,7 @@ if __name__ == '__main__':
                 return
 
 
-    @kb.add('escape', '}')   # Alt+}
+    @kb.add('escape', '}')  # Alt+}
     def next_empty_line(event):
         buffer = event.current_buffer
         text = buffer.text
@@ -121,19 +123,23 @@ if __name__ == '__main__':
                 buffer.cursor_position = sum(len(l) for l in lines[:i + 1])
                 return
 
+
     @kb.add(Keys.Escape, '<')
     def _(event):
         event.current_buffer.cursor_position = 0
 
+
     @kb.add(Keys.ControlX, Keys.ControlC)
     def _(event):
         event.app.exit()
+
 
     @kb.add(Keys.ControlX, Keys.ControlS)
     def _(event):
         with open(FILE_PATH, "w") as f:
             buffer = event.app.current_buffer
             f.write(buffer.text)
+
 
     @kb.add(Keys.ControlX, Keys.ControlF)
     def open_different_file(event):
@@ -188,9 +194,11 @@ if __name__ == '__main__':
 
         event.app.create_background_task(run())
 
+
     @kb.add("c-t")
     def _(event):
         buffer = event.app.current_buffer
+
         # Prompt user for input
         async def prompt_input():
             user_input = await input_dialog(
@@ -209,9 +217,14 @@ if __name__ == '__main__':
             buffer.insert_text(output)
 
         event.app.create_background_task(run())
-    # ---- Keybinding: Ctrl-R ----
+
+    @kb.add("c-o")
+    async def insert_line_above_cursor(event):
+        text_area.buffer.insert_line_above()
+
     @kb.add("c-r")
-    def _(event):
+    async def apply_prompt_to_section(event):
+        task_id = uuid.uuid4()
         buffer = text_area.buffer
         sel = buffer.selection_state
 
@@ -222,58 +235,76 @@ if __name__ == '__main__':
         start, end = buffer.document.selection_range()
         selected_text = buffer.text[start:end]
 
+        doc = buffer.document
+        start_row = doc.translate_index_to_position(start)[0]
+        end_row = doc.translate_index_to_position(end)[0]
+
+        original_cursor_position = buffer.cursor_position
+
+        # Insert end marker
+        buffer.cursor_position = doc.translate_row_col_to_index(end_row, 0)
+        buffer.insert_line_below()
+        buffer.insert_text(f'----------> END PROMPTING - {task_id} <----------')
+
+        # Insert start marker
+        buffer.cursor_position = doc.translate_row_col_to_index(start_row, 0)
+        buffer.insert_line_above()
+        buffer.insert_text(f'------------> PROMPTING - {task_id} <------------')
+
+        buffer.cursor_position = original_cursor_position
+
+        event.app.renderer.clear(),
+        event.app.invalidate()
+
         async def run():
             user_input = await input_dialog(
                 title="Prompt",
                 text="Enter value:",
+
             ).run_async()
 
             if user_input is None:
                 return
 
             # Run script
-            output = run_python_on_text(selected_text, user_input, buffer.text)
+            output = await run_python_on_text(selected_text, user_input, buffer.text)
 
             # Replace selection with output
-            if buffer.cursor_position > start:
-                buffer.delete_before_cursor(count=buffer.cursor_position - start)
-            else:
-                pass
-                # how do we delete stuff here???
-                # buffer.delete_after_cursor(count=end - buffer.cursor_position)
 
-            buffer.insert_text(output)
+            lines = buffer.text.splitlines(keepends=False)
+            start_idx = 0
+            end_idx = 0
+            for i, line in enumerate(lines):
+                if f'------------> PROMPTING - {task_id} <------------' in line:
+                    start_idx = i
+                if f'----------> END PROMPTING - {task_id} <----------' in line:
+                    end_idx = i
+            new_lines = output.splitlines(keepends=False)
+            lines = lines[:start_idx] + new_lines + lines[end_idx+1:]
+            buffer.text = '\n'.join(lines)
 
-            # Clear selection
+            # if buffer.cursor_position > start:
+            #     buffer.delete_before_cursor(count=buffer.cursor_position - start)
+            # else:
+            #     pass
+            #     # how do we delete stuff here???
+            #
+            # buffer.insert_text(output)
             buffer.selection_state = None
 
-            # print("User input:", result)
+            # event.app.renderer.clear(),
+            # event.app.invalidate()
 
         event.app.create_background_task(run())
 
-        # user_input = input_dialog(
-        #     title="Prompt",
-        #     text="Enter value:"
-        # ).run()
-
-        # if not user_input:
-        #     return
-
-        # Run script
-        # output = run_python_on_text(selected_text, user_input)
-
-        # # Replace selection with output
-        # buffer.delete_before_cursor(count=buffer.cursor_position - start)
-        # buffer.insert_text(output)
-
-        # # Clear selection
-        # buffer.selection_state = None
-
-    # ---- App ----
     app = Application(
         layout=Layout(text_area),
         key_bindings=kb,
         full_screen=True,
+        min_redraw_interval=0.1,
     )
 
-    app.run()
+    await app.run_async()
+
+if __name__ == '__main__':
+    asyncio.run(main())

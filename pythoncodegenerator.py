@@ -164,8 +164,9 @@ class PythonCodeGenerator:
 
         response = litellm.completion(
             #model = "gpt-5-nano",
-            # model = "gpt-4.1",
-            model='ollama/qwen2.5-coder',
+            model = 'gpt-5-nano',
+            service_tier='flex',
+            # model='ollama/qwen2.5-coder',
             messages=msgs,
         )
 

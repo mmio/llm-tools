@@ -8,4 +8,18 @@
 
 from agents.instructiongenerator import InstructionGenerator
 
-igen = InstructionGenerator()
+def main() -> None:
+    """
+    Create InstructionGenerator instance and call it if possible.
+    """
+    try:
+        igen = InstructionGenerator()
+        if hasattr(igen, 'generate') and callable(getattr(igen, 'generate')):
+            igen.generate()
+        elif hasattr(igen, 'run') and callable(getattr(igen, 'run')):
+            igen.run()
+    except Exception:
+        raise
+
+if __name__ == '__main__':
+    main()
